@@ -53,8 +53,14 @@ def main():
         nprocs = config['nprocs']
         download_request = config['download_request']
         do_retrieve = config['do_retrieve']
-        do_postproc = config['do_postproc']
+        do_postproc_6h = config['do_postproc_6h']['do']
+        offset_6h = config['do_postproc_6h']['offset']
+        do_postproc_day = config['do_postproc_day']
+        do_postproc_mon = config['do_postproc_mon']
         do_align = config['do_align']
+
+        # if any do_postproc is true, then do_postproc is true
+        do_postproc = any([do_postproc_6h, do_postproc_day, do_postproc_mon])
 
         # Override config with command line args
         if args.nprocs:
@@ -126,6 +132,11 @@ def main():
                         filename = create_filename(dataset, var, freq, grid, levelout, area, year)
                         infile = Path(savedir, filename + '.grib')
                         outfile = Path(destdir, filename + '.nc')
+                        
+                        # if outfile exists, skip, and force is not
+                        if os.path.exists(outfile):
+                            print(f"Skipping {outfile} as it already exists")
+                            continue
                         p = Process(target=year_convert, args=(infile, outfile))
                         # p = Process(target=cdo.copy, args=(infile, outfile, '-f nc4 -z zip'))
                         p.start()
@@ -177,25 +188,37 @@ def main():
 
                 # extra processing for daily data
                 else:
-                    print('Extra processing for daily and 6hrs...')
-                    daydir, mondir = [Path(storedir, var, x) for x in ['day', 'mon']]
-                    Path(daydir).mkdir(parents=True, exist_ok=True)
-                    Path(mondir).mkdir(parents=True, exist_ok=True)
-
+                    print('Extra processing on hourly data')
+                    
                     filepattern = Path(destdir, create_filename(dataset, var, freq, grid, levelout, area, '????') + '.nc')
                     first_year, last_year = first_last_year(filepattern)
 
-                    dayfile = str(Path(daydir, create_filename(dataset, var, 'day', grid,
-                                  levelout, area, first_year + '-' + last_year) + '.nc'))
-                    # monfile = str(Path(mondir, create_filename(var, 'mon', grid, levelout, area, first_year + '-' + last_year) + '.nc'))
+                    time_list = []
+                    if do_postproc_6h:
+                        time_list.append(f'6hT0{offset_6h-1}')
+                    if do_postproc_day:
+                        time_list.append('day')
+                    if do_postproc_mon:
+                        time_list.append('mon')
+                    
+                    for x in time_list:
+                        thedir=Path(storedir, var, x)
+                        Path(thedir).mkdir(parents=True, exist_ok=True)
+                        thefile=str(Path(thedir, create_filename(dataset, var, x, grid, levelout, area, first_year + '-' + last_year) + '.nc'))
+                        if os.path.exists(thefile):
+                            os.remove(thefile)
 
-                    if os.path.exists(dayfile):
-                        os.remove(dayfile)
-
-                    cdo.daymean(input='-cat ' + str(filepattern), 
-                                output=dayfile, options='-f nc4 -z zip')
-                    # cdo.monmean(input = dayfile, output = monfile, options = '-f nc4 -z zip')
-
+                        if x[0:2] == '6h':
+                            cdo.timselsum(6,offset_6h, input='-cat ' + str(filepattern), 
+                                output=thefile, options='-f nc4 -z zip')
+                        elif x == 'day':
+                            cdo.daymean(input='-cat ' + str(filepattern), 
+                                output=thefile, options='-f nc4 -z zip')
+                        elif x == 'mon':
+                            print('Sure? why not downloading monhly data directly?')
+                            cdo.monmean(input='-cat ' + str(filepattern), 
+                                output=thefile, options='-f nc4 -z zip')                            
+                    
     else:
         sys.exit('Error in loading the configuration!')
 

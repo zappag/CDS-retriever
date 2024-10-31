@@ -54,8 +54,12 @@ def print_config(conf_dict):
     print('Actions:')
     if conf_dict['do_retrieve']:
         print('\t - Retrieving data')
-    if conf_dict['do_postproc']:
-        print('\t - Postprocess data')
+    if conf_dict['do_postproc_6h']:
+        print('\t - hourly to 6 hourly post-processing')
+    if conf_dict['do_postproc_day']:
+        print('\t - hourly to daily  post-processing')
+    if conf_dict['do_postproc_mon']:
+        print('\t - hourly to monthly post-processing')
     if conf_dict['do_align']:
         print('\t - Set a common time axis for monthly data')
     print()
