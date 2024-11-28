@@ -18,7 +18,7 @@ import shutil
 from multiprocessing import Process
 import glob
 
-from CDS_retriever import year_retrieve, year_convert, create_filename, first_last_year, which_new_years_download
+from CDS_retriever import year_retrieve, year_convert, create_filename, first_last_year, which_new_years_download, filter_filepattern_by_year
 from config import parser, load_config, print_config
 
 
@@ -153,6 +153,7 @@ def main():
                     print('Extra processing for monthly...')
 
                     filepattern = str(Path(destdir, create_filename(dataset, var, freq, grid, levelout, area, '????') + '.nc'))
+                    filepattern = filter_filepattern_by_year(filepattern, year1, year2)
                     first_year, last_year = first_last_year(filepattern)
 
                     if update:
@@ -191,7 +192,8 @@ def main():
                     print('Extra processing on hourly data')
                     
                     filepattern = Path(destdir, create_filename(dataset, var, freq, grid, levelout, area, '????') + '.nc')
-                    first_year, last_year = first_last_year(filepattern)
+                    #first_year, last_year = first_last_year(filepattern)
+                    filepattern = filter_filepattern_by_year(filepattern, year1, year2)
 
                     time_list = []
                     if do_postproc_6h:
@@ -204,12 +206,13 @@ def main():
                     for x in time_list:
                         thedir=Path(storedir, var, x)
                         Path(thedir).mkdir(parents=True, exist_ok=True)
-                        thefile=str(Path(thedir, create_filename(dataset, var, x, grid, levelout, area, first_year + '-' + last_year) + '.nc'))
+                        #thefile=str(Path(thedir, create_filename(dataset, var, x, grid, levelout, area, first_year + '-' + last_year) + '.nc'))
+                        thefile=str(Path(thedir, create_filename(dataset, var, x, grid, levelout, area, str(year1) + '-' + str(year2)) + '.nc'))
                         if os.path.exists(thefile):
                             os.remove(thefile)
 
                         if x[0:2] == '6h':
-                            cdo.timselsum(6,offset_6h, input='-cat ' + str(filepattern), 
+                            cdo.timselmean(6,offset_6h, input='-cat ' + str(filepattern), 
                                 output=thefile, options='-f nc4 -z zip')
                         elif x == 'day':
                             cdo.daymean(input='-cat ' + str(filepattern), 

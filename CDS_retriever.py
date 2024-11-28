@@ -220,6 +220,16 @@ def first_last_year(filepattern):
         last_year = last_year.split('-')[1]
     return first_year, last_year
 
+def filter_filepattern_by_year(filepattern, year1, year2):
+    """Filter file patterns to include only files whose year is between year1 and year2."""
+    filtered_files = []
+    for file in glob.glob(str(filepattern)):
+        year = int(file.split('_')[-1].split('.')[0].split('-')[0])
+        if year1 <= year <= year2:
+            filtered_files.append(file)
+    filtered_files=" ".join(filtered_files)
+    return filtered_files
+
 # for autosearch of the missing years
 def which_new_years_download(storedir, dataset, var, freq, grid, levelout, area):
     """Identify which years we need to download if something is already found"""
