@@ -153,7 +153,6 @@ def main():
                     print('Extra processing for monthly...')
 
                     filepattern = str(Path(destdir, create_filename(dataset, var, freq, grid, levelout, area, '????') + '.nc'))
-                    filepattern = filter_filepattern_by_year(filepattern, year1, year2)
                     first_year, last_year = first_last_year(filepattern)
 
                     if update:
@@ -193,7 +192,7 @@ def main():
                     
                     filepattern = Path(destdir, create_filename(dataset, var, freq, grid, levelout, area, '????') + '.nc')
                     #first_year, last_year = first_last_year(filepattern)
-                    filepattern = filter_filepattern_by_year(filepattern, year1, year2)
+                    filelist = filter_filepattern_by_year(filepattern, year1, year2)
 
                     time_list = []
                     if do_postproc_6h:
@@ -212,14 +211,14 @@ def main():
                             os.remove(thefile)
 
                         if x[0:2] == '6h':
-                            cdo.timselmean(6,offset_6h, input='-cat ' + str(filepattern), 
+                            cdo.timselmean(6,offset_6h, input='-cat ' + str(filelist), 
                                 output=thefile, options='-f nc4 -z zip')
                         elif x == 'day':
-                            cdo.daymean(input='-cat ' + str(filepattern), 
+                            cdo.daymean(input='-cat ' + str(filelist), 
                                 output=thefile, options='-f nc4 -z zip')
                         elif x == 'mon':
                             print('Sure? why not downloading monhly data directly?')
-                            cdo.monmean(input='-cat ' + str(filepattern), 
+                            cdo.monmean(input='-cat ' + str(filelist), 
                                 output=thefile, options='-f nc4 -z zip')                            
                     
     else:
